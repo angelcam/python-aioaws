@@ -2,12 +2,13 @@ import json
 
 from .aws import AWS
 
+
 class SNS:
     """Basic implementation of Amazon SNS.
     """
 
     SVC_NAME = 'sns'
-    VERSION  = '2010-03-31'
+    VERSION = '2010-03-31'
 
     def __init__(self, region, access_key, secret_key, loop=None):
         """Create a new SNS client.
@@ -20,10 +21,15 @@ class SNS:
         self.__url = 'https://%s.%s.amazonaws.com/' % (SNS.SVC_NAME, region)
 
         self.__common_params = {
-            'Version' : SNS.VERSION
+            'Version': SNS.VERSION
         }
 
-        self.__aws = AWS(region, SNS.SVC_NAME, access_key, secret_key, loop=loop)
+        self.__aws = AWS(
+            region,
+            SNS.SVC_NAME,
+            access_key,
+            secret_key,
+            loop=loop)
 
     async def subscribe(self, topic_arn, protocol, endpoint):
         """Subscribe to a given SNS topic.
@@ -34,17 +40,17 @@ class SNS:
         :return: subscription ARN (in case no confirmation is needed)
         """
         params = {
-            'Action'   : 'Subscribe',
-            'TopicArn' : topic_arn,
-            'Protocol' : protocol,
-            'Endpoint' : endpoint
+            'Action': 'Subscribe',
+            'TopicArn': topic_arn,
+            'Protocol': protocol,
+            'Endpoint': endpoint
         }
         params.update(self.__common_params)
         response = await self.__aws.get(self.__url, params)
         return response.SubscribeResult.SubscriptionArn.text
 
     async def confirm_subscription(self, topic_arn, token,
-        auth_unsubscribe = None):
+                                   auth_unsubscribe=None):
         """Confirm a given subscription.
 
         :param topic_arn: SNS topic ARN
@@ -54,20 +60,20 @@ class SNS:
         :return: subscription ARN
         """
         params = {
-            'Action'   : 'ConfirmSubscription',
-            'TopicArn' : topic_arn,
-            'Token'    : token
+            'Action': 'ConfirmSubscription',
+            'TopicArn': topic_arn,
+            'Token': token
         }
         if auth_unsubscribe is not None:
-            param['AuthenticateOnUnsubscribe'] = str(auth_unsubscribe).lower()
+            params['AuthenticateOnUnsubscribe'] = str(auth_unsubscribe).lower()
         params.update(self.__common_params)
         response = await self.__aws.get(self.__url, params)
         return response.ConfirmSubscriptionResult.SubscriptionArn.text
 
     async def publish(self, topic_arn, message,
-        subject = None,
-        target_arn = None,
-        message_structure = None):
+                      subject=None,
+                      target_arn=None,
+                      message_structure=None):
         """Publish a given message to a given SNS topic.
 
         :param topic_arn: SNS topic ARN
@@ -82,8 +88,8 @@ class SNS:
         if message_structure == 'json':
             message = json.dumps(message)
         params = {
-            'Action'  : 'Publish',
-            'Message' : message
+            'Action': 'Publish',
+            'Message': message
         }
         if subject:
             params['Subject'] = subject

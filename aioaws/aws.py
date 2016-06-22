@@ -2,10 +2,10 @@ import hashlib
 import hmac
 import urllib
 import datetime
-import asyncio
 import aiohttp
 
 from lxml import objectify
+
 
 def url_encode(v):
     """URL-encode a given string. No special characters are allowed
@@ -16,6 +16,7 @@ def url_encode(v):
     """
     return urllib.parse.quote_from_bytes(v.encode('utf-8'), safe='')
 
+
 def sign(key, msg):
     """Sign a given message using a given key.
 
@@ -24,8 +25,9 @@ def sign(key, msg):
     :return: signature (bytes)
     """
     data = msg.encode('utf-8')
-    sig  = hmac.new(key, data, hashlib.sha256)
+    sig = hmac.new(key, data, hashlib.sha256)
     return sig.digest()
+
 
 class AWSException(Exception):
     """AWS errors.
@@ -42,6 +44,7 @@ class AWSException(Exception):
         self.status = status
         self.reason = reason
 
+
 class AWS:
     """Generic AWS client.
     """
@@ -55,8 +58,8 @@ class AWS:
         :param secret_key: AWS secret access key
         :param loop: asyncio event loop
         """
-        self.__region     = region
-        self.__service    = service
+        self.__region = region
+        self.__service = service
         self.__access_key = access_key
         self.__secret_key = secret_key
         self.__event_loop = loop
@@ -68,10 +71,10 @@ class AWS:
         :param data: date stamp
         :return: key (bytes)
         """
-        iv       = 'AWS4' + key
-        iv       = iv.encode('utf-8')
-        kdate    = sign(iv, date)
-        kregion  = sign(kdate, self.__region)
+        iv = 'AWS4' + key
+        iv = iv.encode('utf-8')
+        kdate = sign(iv, date)
+        kregion = sign(kdate, self.__region)
         kservice = sign(kregion, self.__service)
         return sign(kservice, 'aws4_request')
 
@@ -83,28 +86,28 @@ class AWS:
         :return: response (lxml object)
         """
         timestamp = datetime.datetime.utcnow()
-        amz_date  = timestamp.strftime('%Y%m%dT%H%M%SZ')
-        date      = timestamp.strftime('%Y%m%d')
+        amz_date = timestamp.strftime('%Y%m%dT%H%M%SZ')
+        date = timestamp.strftime('%Y%m%d')
 
         tmp = urllib.parse.urlparse(url)
 
-        canonical_uri     = tmp.path
+        canonical_uri = tmp.path
         canonical_headers = 'host:%s\n' % tmp.netloc
-        signed_headers    = 'host'
+        signed_headers = 'host'
 
-        alg        = 'AWS4-HMAC-SHA256'
-        region     = self.__region
-        service    = self.__service
+        alg = 'AWS4-HMAC-SHA256'
+        region = self.__region
+        service = self.__service
         access_key = self.__access_key
-        scope      = '%s/%s/%s/aws4_request' % (date, region, service)
+        scope = '%s/%s/%s/aws4_request' % (date, region, service)
         credential = '%s/%s' % (access_key, scope)
 
-        params['X-Amz-Algorithm']     = alg
-        params['X-Amz-Credential']    = credential
-        params['X-Amz-Date']          = amz_date
+        params['X-Amz-Algorithm'] = alg
+        params['X-Amz-Credential'] = credential
+        params['X-Amz-Date'] = amz_date
         params['X-Amz-SignedHeaders'] = signed_headers
 
-        params = [ (k, url_encode(str(v))) for k, v in params.items() ]
+        params = [(k, url_encode(str(v))) for k, v in params.items()]
         params = sorted(params, key=lambda p: p[0])
         params = map(lambda p: '%s=%s' % (p[0], p[1]), params)
 
@@ -121,12 +124,12 @@ class AWS:
 
         crhash = hashlib.sha256(canonical_request.encode('utf-8'))
 
-        sdata  = '%s\n%s\n%s\n%s' % (alg, amz_date, scope, crhash.hexdigest())
-        key    = self.__get_signature_key(self.__secret_key, date)
-        sig    = hmac.new(key, sdata.encode('utf-8'), hashlib.sha256)
+        sdata = '%s\n%s\n%s\n%s' % (alg, amz_date, scope, crhash.hexdigest())
+        key = self.__get_signature_key(self.__secret_key, date)
+        sig = hmac.new(key, sdata.encode('utf-8'), hashlib.sha256)
 
         canonical_query += '&X-Amz-Signature=' + sig.hexdigest()
-        url             += '?' + canonical_query
+        url += '?' + canonical_query
 
         async with aiohttp.get(url, loop=self.__event_loop) as response:
             if response.status != 200:
