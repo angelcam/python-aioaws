@@ -11,6 +11,12 @@ Add this repository to your requirements.txt:
 -e git+https://bitbucket.org/angelcam/python-aioaws.git#egg=aioaws
 ```
 
+install the following packages:
+
+```bash
+sudo apt-get install libxml2-dev libxslt-dev libz-dev
+```
+
 and run:
 
 ```bash
