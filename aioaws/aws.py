@@ -128,7 +128,7 @@ class AWS:
         canonical_query += '&X-Amz-Signature=' + sig.hexdigest()
         url             += '?' + canonical_query
 
-        async with aiohttp.get(url) as response:
+        async with aiohttp.get(url, loop=self.__event_loop) as response:
             if response.status != 200:
                 raise AWSException(response.status, response.reason)
             body = await response.text()
