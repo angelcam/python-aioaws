@@ -1,4 +1,4 @@
-from .aws import AWS
+from .aws import AWS, AWSException
 
 
 class SQS:
@@ -126,3 +126,46 @@ class SQS:
         params.update(self.__common_params)
         response = await self.__aws.get(url, params)
         return response.ResponseMetadata.RequestId.text
+
+    async def delete_messages(self, queue, receipt_handles):
+        """Delete a given list of messages from a given queue.
+
+        :param queue: name of an SQS queue
+        :param receipt_handles: list of receipt handles
+        :return: a list errors (or Nones)
+        """
+        url = self.__get_queue_url(queue)
+        result = [None for h in receipt_handles]
+        start = 0
+        while start < len(receipt_handles):
+            # get receipt handles subset (max 10 handles):
+            end = start + 10
+            if end > len(receipt_handles):
+                end = len(receipt_handles)
+            delete_handles = receipt_handles[start:end]
+            # get request parameters:
+            params = {
+                'Action': 'DeleteMessageBatch'
+            }
+            params.update(self.__common_params)
+            for i in range(end - start):
+                eid = i + 1
+                pid = 'DeleteMessageBatchRequestEntry.%d.Id' % eid
+                prh = 'DeleteMessageBatchRequestEntry.%d.ReceiptHandle' % eid
+                params[pid] = start + i
+                params[prh] = delete_handles[i]
+            # perform request:
+            response = await self.__aws.get(url, params)
+            # process response:
+            bresult = response.DeleteMessageBatchResult
+            errors = []
+            if hasattr(bresult, 'BatchResultErrorEntry'):
+                errors = bresult.BatchResultErrorEntry
+            for err in errors:
+                index = int(err.Id.text)
+                status = int(err.Code.text)
+                reason = err.Message.text
+                result[index] = AWSException(status, reason)
+            # update position:
+            start += 10
+        return result
