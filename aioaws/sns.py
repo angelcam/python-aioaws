@@ -142,3 +142,4 @@ def attributes_to_params(attributes):
             params['%s.Value.StringValue' % prefix] = attr['StringValue']
         if 'BinaryValue' in attr:
             params['%s.Value.BinaryValue' % prefix] = attr['BinaryValue']
+    return params
