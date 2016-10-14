@@ -73,7 +73,8 @@ class SNS:
     async def publish(self, topic_arn, message,
                       subject=None,
                       target_arn=None,
-                      message_structure=None):
+                      message_structure=None,
+                      attributes={}):
         """Publish a given message to a given SNS topic.
 
         :param topic_arn: SNS topic ARN
@@ -82,6 +83,24 @@ class SNS:
         :param target_arn: topic ARN or endpoint ARN but not both
         :param message_structure: "json" for separate messages for every
         protocol
+        :params attributes: message attributes; should be of the form:
+
+            .. code-block:: python
+                {
+                    "name1": {
+                        "DataType": "Number",
+                        "StringValue": "42"
+                    },
+                    "name2": {
+                        "DataType": "String",
+                        "StringValue": "Bob"
+                    },
+                    "name3": {
+                        "DataType": "Binary",
+                        "BinaryValue": "base64"
+                    }
+                }
+
         :return: message ID
         """
         assert message_structure in (None, 'json')
@@ -100,5 +119,26 @@ class SNS:
         if target_arn:
             params['TargetArn'] = target_arn
         params.update(self.__common_params)
+        params.update(attributes_to_params(attributes))
         response = await self.__aws.get(self.__url, params)
         return response.PublishResult.MessageId.text
+
+
+def attributes_to_params(attributes):
+    """Convert a given dictionary into MessageAttributes params.
+
+    :param attributes: message attributes dictionary
+    :return: MessageAttributes params dictionary
+    """
+    index = 0
+    params = {}
+    for name, attr in attributes.items():
+        index += 1
+        prefix = 'MessageAttributes.entry.%d' % index
+        params['%s.Name' % prefix] = name
+        if 'DataType' in attr:
+            params['%s.Value.DataType' % prefix] = attr['DataType']
+        if 'StringValue' in attr:
+            params['%s.Value.StringValue' % prefix] = attr['StringValue']
+        if 'BinaryValue' in attr:
+            params['%s.Value.BinaryValue' % prefix] = attr['BinaryValue']
