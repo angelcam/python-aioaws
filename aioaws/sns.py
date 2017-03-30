@@ -1,9 +1,9 @@
 import json
 
-from .aws import AWS
+from .aws import AsyncWithMixin, AWS
 
 
-class SNS:
+class SNS(AsyncWithMixin):
     """Basic implementation of Amazon SNS.
     """
 
@@ -11,7 +11,8 @@ class SNS:
     VERSION = '2010-03-31'
 
     def __init__(self, region, access_key, secret_key, loop=None):
-        """Create a new SNS client.
+        """Create a new SNS client. The client should be created only within
+        a coroutine as it contains an aiohttp ClientSession.
 
         :param region: AWS region
         :param access_key: AWS access key
@@ -30,6 +31,9 @@ class SNS:
             access_key,
             secret_key,
             loop=loop)
+
+    def close(self):
+        self.__aws.close()
 
     async def subscribe(self, topic_arn, protocol, endpoint):
         """Subscribe to a given SNS topic.

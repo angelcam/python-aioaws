@@ -1,7 +1,7 @@
-from .aws import AWS, AWSException
+from .aws import AsyncWithMixin, AWS, AWSException
 
 
-class SQS:
+class SQS(AsyncWithMixin):
     """Basic implementation of Amazon SQS.
     """
 
@@ -9,7 +9,8 @@ class SQS:
     VERSION = '2012-11-05'
 
     def __init__(self, region, account_id, access_key, secret_key, loop=None):
-        """Create a new SQS client.
+        """Create a new SQS client. The client should be created only within
+        a coroutine as it contains an aiohttp ClientSession.
 
         :param region: AWS region
         :param account_id: AWS account ID
@@ -30,6 +31,9 @@ class SQS:
             access_key,
             secret_key,
             loop=loop)
+
+    def close(self):
+        self.__aws.close()
 
     def __get_queue_url(self, queue):
         """Get URL for a gicen queue name.

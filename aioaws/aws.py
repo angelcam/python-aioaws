@@ -2,9 +2,9 @@ import hashlib
 import hmac
 import urllib
 import datetime
-import aiohttp
 
 from lxml import objectify
+from aiohttp import ClientSession
 
 
 def url_encode(v):
@@ -45,12 +45,25 @@ class AWSException(Exception):
         self.reason = reason
 
 
-class AWS:
+class AsyncWithMixin:
+    """Simple mixin for classes that should support the ``async with``
+    statement. It only requires a ``close()`` method to be implementated.
+    """
+
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        self.close()
+
+
+class AWS(AsyncWithMixin):
     """Generic AWS client.
     """
 
     def __init__(self, region, service, access_key, secret_key, loop=None):
-        """Create a new AWS client.
+        """Create a new AWS client. The client should be created only within
+        a coroutine as it contains an aiohttp ClientSession.
 
         :param region: AWS region
         :param service: AWS service name (e.g. sqs, sns)
@@ -62,7 +75,11 @@ class AWS:
         self.__service = service
         self.__access_key = access_key
         self.__secret_key = secret_key
-        self.__event_loop = loop
+
+        self.__http_client = ClientSession(loop=loop)
+
+    def close(self):
+        self.__http_client.close()
 
     def __get_signature_key(self, key, date):
         """Get signature key for a given date-stamp.
@@ -131,7 +148,7 @@ class AWS:
         canonical_query += '&X-Amz-Signature=' + sig.hexdigest()
         url += '?' + canonical_query
 
-        async with aiohttp.get(url, loop=self.__event_loop) as response:
+        async with self.__http_client.get(url) as response:
             if response.status != 200:
                 raise AWSException(response.status, response.reason)
             body = await response.text()

@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="aioaws",
-    version='1.3.1',
+    version='1.4.0',
     description="Angelcam asyncio AWS library",
     keywords="asyncio asynchronous aws",
     author="Angelcam",
@@ -11,7 +11,7 @@ setup(
     license="MIT",
     packages=find_packages(),
     install_requires=[
-        "aiohttp >= 0.21.6",
+        "aiohttp >= 1.0.0",
         "lxml >= 3.5.0"
     ],
     include_package_data=True,
