@@ -1,7 +1,7 @@
-from .aws import AsyncWithMixin, AWS, AWSException
+from .aws import AWS, AWSException
 
 
-class SQS(AsyncWithMixin):
+class SQS:
     """Basic implementation of Amazon SQS.
     """
 
@@ -31,9 +31,6 @@ class SQS(AsyncWithMixin):
             access_key,
             secret_key,
             loop=loop)
-
-    def close(self):
-        self.__aws.close()
 
     def __get_queue_url(self, queue):
         """Get URL for a gicen queue name.

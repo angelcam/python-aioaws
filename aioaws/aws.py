@@ -45,19 +45,7 @@ class AWSException(Exception):
         self.reason = reason
 
 
-class AsyncWithMixin:
-    """Simple mixin for classes that should support the ``async with``
-    statement. It only requires a ``close()`` method to be implementated.
-    """
-
-    async def __aenter__(self):
-        return self
-
-    async def __aexit__(self, exc_type, exc_val, exc_tb):
-        self.close()
-
-
-class AWS(AsyncWithMixin):
+class AWS:
     """Generic AWS client.
     """
 
@@ -75,11 +63,7 @@ class AWS(AsyncWithMixin):
         self.__service = service
         self.__access_key = access_key
         self.__secret_key = secret_key
-
-        self.__http_client = ClientSession(loop=loop)
-
-    def close(self):
-        self.__http_client.close()
+        self.__event_loop = loop
 
     def __get_signature_key(self, key, date):
         """Get signature key for a given date-stamp.
@@ -148,8 +132,9 @@ class AWS(AsyncWithMixin):
         canonical_query += '&X-Amz-Signature=' + sig.hexdigest()
         url += '?' + canonical_query
 
-        async with self.__http_client.get(url) as response:
-            if response.status != 200:
-                raise AWSException(response.status, response.reason)
-            body = await response.text()
-            return objectify.fromstring(body)
+        async with ClientSession(loop=self.__event_loop) as http_client:
+            async with http_client.get(url) as response:
+                if response.status != 200:
+                    raise AWSException(response.status, response.reason)
+                body = await response.text()
+                return objectify.fromstring(body)

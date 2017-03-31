@@ -1,9 +1,9 @@
 import json
 
-from .aws import AsyncWithMixin, AWS
+from .aws import AWS
 
 
-class SNS(AsyncWithMixin):
+class SNS:
     """Basic implementation of Amazon SNS.
     """
 
@@ -31,9 +31,6 @@ class SNS(AsyncWithMixin):
             access_key,
             secret_key,
             loop=loop)
-
-    def close(self):
-        self.__aws.close()
 
     async def subscribe(self, topic_arn, protocol, endpoint):
         """Subscribe to a given SNS topic.
