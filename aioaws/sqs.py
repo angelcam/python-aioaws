@@ -60,16 +60,16 @@ class SQS:
             result['Attributes'][attr.Name.text] = attr.Value.text
         return result
 
-    async def send_message(self, queue, message,
-                           delay_seconds=None):
+    async def send_message(self, queue, message, queue_url=None, delay_seconds=None):
         """Send a given message to a given queue.
 
         :param queue: name of an SQS queue
         :param message: message
+        :param queue_url: optional url to use instead of the per-region default one
         :param delay_seconds: the DelaySeconds parameter (see the AWS docs)
         :return: message ID
         """
-        url = self.__get_queue_url(queue)
+        url = queue_url or self.__get_queue_url(queue)
         params = {
             'Action': 'SendMessage',
             'MessageBody': message
@@ -81,6 +81,7 @@ class SQS:
         return response.SendMessageResult.MessageId.text
 
     async def receive_messages(self, queue,
+                               queue_url=None,
                                max_messages=None,
                                wait_time=None,
                                visibility_timeout=None):
@@ -88,13 +89,14 @@ class SQS:
 
         :param queue: name of an SQS queue
         :param max_messages: the MaxNumberOfMessages parameter (see the AWS
+        :param queue_url: optional url to use instead of the per-region default one
         docs)
         :param wait_time: the WaitTimeSeconds parameter (see the AWS docs)
         :param visibility_timeout: the VisibilityTimeout parameter (see the AWS
         docs)
         :return: list of received messages (a list of dicts)
         """
-        url = self.__get_queue_url(queue)
+        url = queue_url or self.__get_queue_url(queue)
         params = {
             'Action': 'ReceiveMessage',
             'AttributeName': 'All'
@@ -112,14 +114,15 @@ class SQS:
         messages = response.ReceiveMessageResult.Message
         return [self.__parse_received_message(msg) for msg in messages]
 
-    async def delete_message(self, queue, receipt_handle):
+    async def delete_message(self, queue, receipt_handle, queue_url=None):
         """Delete a given message from a given queue.
 
         :param queue: name of an SQS queue
         :param receipt_handle: message receipt handle
+        :param queue_url: optional url to use instead of the per-region default one
         :return: request ID
         """
-        url = self.__get_queue_url(queue)
+        url = queue_url or self.__get_queue_url(queue)
         params = {
             'Action': 'DeleteMessage',
             'ReceiptHandle': receipt_handle
@@ -128,14 +131,15 @@ class SQS:
         response = await self.__aws.get(url, params)
         return response.ResponseMetadata.RequestId.text
 
-    async def delete_messages(self, queue, receipt_handles):
+    async def delete_messages(self, queue, receipt_handles, queue_url=None):
         """Delete a given list of messages from a given queue.
 
         :param queue: name of an SQS queue
         :param receipt_handles: list of receipt handles
+        :param queue_url: optional url to use instead of the per-region default one
         :return: a list errors (or Nones)
         """
-        url = self.__get_queue_url(queue)
+        url = queue_url or self.__get_queue_url(queue)
         result = [None for h in receipt_handles]
         start = 0
         while start < len(receipt_handles):
